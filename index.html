@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Cine Flow</title>
+<style>
+* {
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family: 'Arial', sans-serif;
+}
+body {
+    background:#111;
+    color:#fff;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+}
+#menuPrincipal {
+    display:flex;
+    gap:30px;
+    margin-top:50px;
+}
+.bloque {
+    width:180px;
+    height:180px;
+    border-radius:20px;
+    overflow:hidden;
+    background:#222;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+    cursor:pointer;
+    transition: all 0.3s ease;
+    text-shadow:1px 1px 5px #000;
+    color:#fff;
+}
+.bloque:hover {
+    transform: scale(1.05);
+    box-shadow:0 0 20px rgba(255,255,255,0.2);
+}
+#submenu {
+    display:flex;
+    gap:20px;
+    margin-top:30px;
+    flex-wrap:wrap;
+    justify-content:center;
+}
+#btnVolver {
+    margin-top:20px;
+    padding:10px 20px;
+    background:#333;
+    border:none;
+    color:#fff;
+    border-radius:10px;
+    cursor:pointer;
+    display:none;
+}
+#overlay {
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.9);
+    justify-content:center;
+    align-items:center;
+    z-index:999;
+}
+#overlay video {
+    max-width:90vw;
+    max-height:90vh;
+    border-radius:10px;
+}
+#cerrarOverlay {
+    position:absolute;
+    top:10px;
+    right:10px;
+    background:#333;
+    color:#fff;
+    border:none;
+    border-radius:50%;
+    width:40px;
+    height:40px;
+    font-size:24px;
+    cursor:pointer;
+}
+#submenu.grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 15px;
+    justify-items: center;
+    margin-top: 20px;
+}
+</style>
+</head>
+<body>
+
+<div id="menuPrincipal">
+    <div class="bloque" id="marvel" style="background-image:url('imagenes/marvel/marvel.jpg'); background-size:cover; background-position:center;"></div>
+    <div class="bloque" id="dc" style="background-image:url('imagenes/dc/dc.jpg'); background-size:cover; background-position:center;"></div>
+    <div class="bloque" id="karatekid" style="background-image:url('imagenes/karatekid/karatekid.jpg'); background-size:cover; background-position:center;"></div>
+    <div class="bloque" id="mas" style="background:#222;">...</div>
+</div>
+
+<div id="submenu"></div>
+
+<button id="btnVolver">Volver</button>
+
+<div id="overlay">
+    <button id="cerrarOverlay">×</button>
+    <video id="videoOverlay" controls style="display:block; max-width:90vw; max-height:90vh; border-radius:10px;"></video>
+    <iframe id="videoIframe" style="display:none; width:90vw; height:90vh; border:none; border-radius:10px;"></iframe>
+</div>
+
+<script>
+const menuPrincipal = document.getElementById('menuPrincipal');
+const submenu = document.getElementById('submenu');
+const btnVolver = document.getElementById('btnVolver');
+
+const submenus = {
+    marvel: [
+        { nombre:'616', imagen:'imagenes/marvel/616.jpg' },
+        { nombre:'Multi', imagen:'imagenes/marvel/multi.jpg' }
+    ],
+    dc: [
+        { nombre:'James Gunn', imagen:'imagenes/dc/jamesgunn.jpg' },
+        { nombre:'DCU', imagen:'imagenes/dc/dcu.jpg' },
+        { nombre:'Arrowverso', imagen:'imagenes/dc/arrowverso.jpg' }
+    ]
+};
+
+// ------------------ MENU PRINCIPAL ------------------
+function mostrarMenuPrincipal(){
+    submenu.innerHTML = '';
+    submenu.classList.remove('grid');
+    menuPrincipal.style.display = 'flex';
+    btnVolver.style.display = 'none';
+}
+
+// Botones principales
+document.getElementById('marvel').onclick = () => mostrarSubmenu('marvel', mostrarMenuPrincipal);
+document.getElementById('dc').onclick = () => mostrarSubmenu('dc', mostrarMenuPrincipal);
+document.getElementById('karatekid').onclick = () => mostrarCarteleraKarateKid(mostrarMenuPrincipal);
+document.getElementById('mas').onclick = () => alert('MAS...');
+
+// Botón volver
+btnVolver.onclick = () => {
+    if(btnVolver._volverFunc) btnVolver._volverFunc();
+};
+
+// ------------------ SUBMENU GENÉRICO ------------------
+function crearBloqueImagen(width, height, imagen, texto) {
+    const div = document.createElement('div');
+    div.className = 'bloque';
+    div.style.width = width;
+    div.style.height = height;
+    if (imagen) div.style.backgroundImage = "url('" + imagen + "')";
+    div.style.backgroundSize = 'cover';
+    div.style.backgroundPosition = 'center';
+    if (texto) div.textContent = texto;
+    return div;
+}
+
+function mostrarSubmenu(categoria, volverFunc){
+    submenu.innerHTML = '';
+    submenu.classList.remove('grid');
+    menuPrincipal.style.display = 'none';
+    btnVolver.style.display = 'inline-block';
+    btnVolver._volverFunc = volverFunc;
+
+    const lista = submenus[categoria] || [];
+    lista.forEach(item => {
+        const div = crearBloqueImagen('180px','180px', item.imagen, item.nombre);
+
+        if(categoria==='dc' && item.nombre==='James Gunn'){
+            div.onclick = () => mostrarCarteleraJamesGunn(() => mostrarSubmenu(categoria, volverFunc));
+        }
+        else if(categoria==='dc' && item.nombre==='Arrowverso'){
+            div.onclick = () => mostrarArrowverso(() => mostrarSubmenu(categoria, volverFunc));
+        }
+        else {
+            div.onclick = () => alert(item.nombre+' seleccionado');
+        }
+
+        submenu.appendChild(div);
+    });
+}
+
+// ------------------ JAMES GUNN ------------------
+function mostrarCarteleraJamesGunn(volverFunc){
+    submenu.innerHTML='';
+    submenu.classList.remove('grid');
+    menuPrincipal.style.display = 'none';
+    btnVolver.style.display='inline-block';
+    btnVolver._volverFunc = volverFunc;
+
+    const peliculas = [
+        { titulo:'Superman 2025', poster:'imagenes/dc/superman2025.jpg', video:'videos/dc/jamesgunn/superman2025.mp4' }
+    ];
+
+    peliculas.forEach(peli=>{
+        const div = crearBloqueImagen('200px','300px', peli.poster, '');
+        div.onclick = ()=> abrirVideo(peli.video);
+        submenu.appendChild(div);
+    });
+}
+
+// ------------------ DCU ------------------
+function mostrarCarteleraDCU(volverFunc){
+    submenu.innerHTML='';
+    submenu.classList.remove('grid');
+    menuPrincipal.style.display = 'none';
+    btnVolver.style.display='inline-block';
+    btnVolver._volverFunc = volverFunc;
+
+    // ------------------ PELÍCULA DE EJEMPLO ------------------
+    const ejemploDCU = { 
+        titulo: 'Batman 2022', 
+        poster: 'imagenes/dcu/batman2022.jpg', 
+        video: 'videos/dcu/batman2022.mp4' 
+    };
+    const divEjemplo = crearBloqueImagen('200px','300px', ejemploDCU.poster, '');
+    divEjemplo.onclick = () => abrirVideo(ejemploDCU.video);
+    submenu.appendChild(divEjemplo);
+    // ---------------------------------------------------------
+}
+
+// ------------------ KARATE KID ------------------
+function mostrarCarteleraKarateKid(volverFunc){
+    submenu.innerHTML='';
+    submenu.classList.remove('grid');
+    menuPrincipal.style.display = 'none';
+    btnVolver.style.display='inline-block';
+    btnVolver._volverFunc = volverFunc;
+
+    const peliculas = [
+        { titulo:'Karate Kid 1', poster:'imagenes/karatekid/karatekid1.jpg', video:'videos/karatekid/karatekid1.mp4' },
+        { titulo:'Karate Kid 2', poster:'imagenes/karatekid/karatekid2.jpg', video:'videos/karatekid/karatekid2.mp4' },
+        { titulo:'Karate Kid 3', poster:'imagenes/karatekid/karatekid3.jpg', video:'videos/karatekid/karatekid3.mp4' },
+        { titulo:'Karate Kid 4', poster:'imagenes/karatekid/karatekid4.jpg', video:'videos/karatekid/karatekid4.mp4' },
+        { titulo:'Karate Kid 2010', poster:'imagenes/karatekid/karatekid2010.jpg', video:'videos/karatekid/karatekid2010.mp4' }
+    ];
+
+    peliculas.forEach(peli=>{
+        const div = crearBloqueImagen('180px','260px', peli.poster, '');
+        div.onclick = ()=> abrirVideo(peli.video);
+        submenu.appendChild(div);
+    });
+
+    const cobraKai = crearBloqueImagen('180px','260px', 'imagenes/karatekid/cobrakai.jpg', '');
+    cobraKai.onclick = () => mostrarCobraKaiTemporadas(() => mostrarCarteleraKarateKid(volverFunc));
+    submenu.appendChild(cobraKai);
+
+    const kk5 = crearBloqueImagen('180px','260px', 'imagenes/karatekid/karatekid5.jpg', '');
+    kk5.onclick = ()=> abrirVideo('videos/karatekid/karatekid5.mp4');
+    submenu.appendChild(kk5);
+}
+
+// ------------------ COBRA KAI ------------------
+function mostrarCobraKaiTemporadas(volverFunc){
+    submenu.innerHTML='';
+    submenu.classList.add('grid');
+    btnVolver.style.display='inline-block';
+    btnVolver._volverFunc = volverFunc;
+
+    const temporadas = [
+        { nombre:'Temporada 1', episodios:10 },
+        { nombre:'Temporada 2', episodios:10 },
+        { nombre:'Temporada 3', episodios:10 },
+        { nombre:'Temporada 4', episodios:10 },
+        { nombre:'Temporada 5', episodios:10 },
+        { nombre:'Temporada 6', episodios:15 }
+    ];
+
+    temporadas.forEach(temp=>{
+        const div = document.createElement('div');
+        div.className='bloque';
+        div.style.width='180px';
+        div.style.height='50px';
+        div.style.background='#333';
+        div.style.borderRadius='10px';
+        div.style.display='flex';
+        div.style.alignItems='center';
+        div.style.justifyContent='center';
+        div.style.cursor='pointer';
+        div.textContent=temp.nombre;
+        div.onclick = () => mostrarCobraKaiEpisodios(temp, () => mostrarCobraKaiTemporadas(volverFunc));
+        submenu.appendChild(div);
+    });
+}
+
+function mostrarCobraKaiEpisodios(temporada, volverFunc){
+    submenu.innerHTML='';
+    submenu.classList.add('grid');
+    btnVolver.style.display='inline-block';
+    btnVolver._volverFunc = volverFunc;
+
+    const partes = temporada.nombre.split(' ');
+    const numStr = partes.length > 1 ? partes[1] : '1';
+    const tempNum = numStr.padStart(2,'0');
+
+    for(let ep=1; ep<=temporada.episodios; ep++){
+        const div = document.createElement('div');
+        div.className='bloque';
+        div.style.width='120px';
+        div.style.height='50px';
+        div.style.background='#444';
+        div.style.borderRadius='10px';
+        div.style.display='flex';
+        div.style.alignItems='center';
+        div.style.justifyContent='center';
+        div.style.cursor='pointer';
+        div.textContent='Episodio '+ep;
+
+        const ruta = 'videos/karatekid/cobrakai/S' + tempNum + '/cobrakai' + parseInt(tempNum) + 'x' + ep + '.mp4';
+        div.onclick = ()=> abrirVideo(ruta);
+
+        submenu.appendChild(div);
+    }
+}
+
+// ------------------ ARROWVERSO ------------------
+function mostrarArrowverso(volverFunc){
+
+    function mostrarTemporadasArrow(serie, volverFunc){
+        submenu.innerHTML='';
+        submenu.classList.add('grid');
+        btnVolver.style.display='inline-block';
+        btnVolver._volverFunc = volverFunc;
+
+        serie.temporadas.forEach(temp=>{
+            const div = document.createElement('div');
+            div.className='bloque';
+            div.style.width='180px';
+            div.style.height='50px';
+            div.style.background='#333';
+            div.style.borderRadius='10px';
+            div.style.display='flex';
+            div.style.alignItems='center';
+            div.style.justifyContent='center';
+            div.style.cursor='pointer';
+            div.textContent='Temporada '+temp.numero;
+
+            div.onclick = () => mostrarEpisodiosArrow(serie, temp, () => mostrarTemporadasArrow(serie, volverFunc));
+
+            submenu.appendChild(div);
+        });
+    }
+
+    function mostrarEpisodiosArrow(serie, temporada, volverFunc){
+        submenu.innerHTML='';
+        submenu.classList.add('grid');
+        btnVolver.style.display='inline-block';
+        btnVolver._volverFunc = volverFunc;
+
+// Caso especial: Constantine (usa enlaces externos, se abren en pestaña nueva)
+if (serie.nombre === 'Constantine') {
+    const enlaces = [
+        "https://nuuuppp.sbs/watchpremium/l6SsNgbGI6OxZOE1Ln3jz3yCVBhf2L7kz71VFq3jz3JevPBjghu0?h=",
+        "https://nuuuppp.sbs/watchpremium/uyiLKAohOWP3jz39gMrNm7kz7GTcH2jPUmQhJY3pDP6XISKxc?h=",
+        "https://nuuuppp.sbs/watchpremium/0FQ6MHa3jz3O6TmuHrISz8CC8VWiHRUWDo0sc3LFHShXbQ?h=",
+        "https://nuuuppp.sbs/watchpremium/exMW5hRXcEq7hDRfuB5rPEczniZanY6UK7kz7XEmo7baoo?h=",
+        "https://nuuuppp.sbs/watchpremium/NKFisESDH7kz7kU5uNkpPP1QY06d52dMwsw4QQ1tl7kz7ZnE8?h=",
+        "https://nuuuppp.sbs/watchpremium/Ydd3jz3EsyeGtwmtuX4lELWhJAqgcbiYW90MVZJysidVy0?h=",
+        "https://nuuuppp.sbs/watchpremium/dfBnOU9VnQkdPhSkQ5xJ9qH74JF7HfHNzXHtKAaQmRQ?h=",
+        "https://nuuuppp.sbs/watchpremium/Dnv7Ctm7i0wnN7jlJDNNKryAMKrkPESBDJGSdH9QXrQ?h=",
+        "https://nuuuppp.sbs/watchpremium/3tqB8feVjz6hZwwtnHXu2AfhfF1EKvAzqM7kz7SQqNjSqE?h=",
+        "https://nuuuppp.sbs/watchpremium/8BPXHcJMFcViO0debWPVaCPB4IDovekYtFFrGPu7kz77rY?h=",
+        "https://nuuuppp.sbs/watchpremium/RnPHRvsDL6Kx3mNtveL7DIhPvwSkSf9jpRocKmAzMHE?h=",
+        "https://nuuuppp.sbs/watchpremium/IquEj7Ml1IIBoUhrgwG9794NVio3rNYHoBePQwlqQ?h=",
+        "https://nuuuppp.sbs/watchpremium/kTd3jz3tit9kbQvf5rpEAVBYJwOLlu7kz7N358B7kz7ew9b04xOk?h="
+    ];
+
+    for (let idx = 0; idx < temporada.episodios && idx < enlaces.length; idx++) {
+        const div = document.createElement('div');
+        div.className='bloque';
+        div.style.width='120px';
+        div.style.height='50px';
+        div.style.background='#444';
+        div.style.borderRadius='10px';
+        div.style.display='flex';
+        div.style.alignItems='center';
+        div.style.justifyContent='center';
+        div.style.cursor='pointer';
+        div.textContent = 'Episodio ' + (idx + 1);
+
+        // Abrir enlace en pestaña nueva
+        div.onclick = () => window.open(enlaces[idx], "_blank");
+
+        submenu.appendChild(div);
+    }
+    return;
+}
+// Caso especial: Batwoman (todas las temporadas con enlaces externos, se abren en pestaña nueva)
+if (serie.nombre === 'Batwoman') {
+
+    // Enlaces por temporada
+    const enlacesPorTemporada = {
+        1: [ 
+            "https://nuuuppp.sbs/watchpremium/gaqRQ0lyOARpDs6oh41ThvbEjXHYauwH65uU2OATlDM?h=", 
+            "https://nuuuppp.sbs/watchpremium/pFeVmwrTCLWR66wFX7SbchHcXT03jz3we8yhvQs3N1ajDw?h=", 
+            "https://nuuuppp.sbs/watchpremium/ZuETXo5LIAn0r5VxyN8KWFWVMmXQ0Wtztgfywss3Ors?h=",
+            "https://nuuuppp.sbs/watch/4feiB4bdTHLBCvYnumn1WBtb9qMgXTJQ4lb9pJ5TbsY?h=", 
+            "https://nuuuppp.sbs/watch/kfSj9p6RQM64sTfa3t8QLTIDc4dRHV2bAD7lGnHQh7kz7Y?h=", 
+            "https://nuuuppp.sbs/watch/7kz7pHC7XbdLc2wkYG1EBLUUomA307kz7lNK2D8ywd87lsx7U?h=",
+            "https://nuuuppp.sbs/watch/EWUktByUQ7gNZMnB9YvurEhFCH9JYa4QOK5SQZGX7Nk?h=", 
+            "https://nuuuppp.sbs/watch/9RbFQ6XABv98uYWPUZjrx7sjPlNQplVTGbujpHQmftU?h=", 
+            "https://nuuuppp.sbs/watch/xiD7TqmkpZyTt0H47E54IG6QPN7A2RqZl2Dr3jz3wWKm6A?h=",
+            "https://nuuuppp.sbs/watch/coWc27uN5USwBav4erpWT8KKYbzIhymFFMlkm7kz76ds1Q?h=", 
+            "https://nuuuppp.sbs/watch/cynqGtCv42eWM0Eshf2bgO4SzvrrM2GlAdglQuk06AY?h=", 
+            "https://nuuuppp.sbs/watch/SwZ6X6gRYwSYX3jz3f9fz2DfZZDNaWftZAfv7kz7XlEI3jz3HHqo?h=",
+            "https://nuuuppp.sbs/watch/tQ6hmQwof1NPZssrkUsYyA9bOB2DA27kz7YhnXtKxxDojE?h=", 
+            "https://nuuuppp.sbs/watch/w6VOgYedvUQD9zyU7KvpzQpNE4MasaweR1TUXcMybrc?h=", 
+            "https://nuuuppp.sbs/watch/XHVywXq1Fz7IyQ3jz3DK4ZddcoPKglt6IN8CzEu7fkUJeY?h=",
+            "https://nuuuppp.sbs/watch/xsRjEKqEF5xvGapXAnruoZ8nN9x3g8szKwAwILMcJy0?h=", 
+            "https://nuuuppp.sbs/watch/06CN6yNdWTscQ3jz3joi7kz7PIC7kz77kz7KQ0cZ7kz7chD97047B4L8?h=", 
+            "https://nuuuppp.sbs/watch/5Rpq926Ig5pNcIeDeC7kz79T193SrTL7uhfXZNqTgWPW5c?h=",
+            "https://nuuuppp.sbs/watch/r65rB93AhOao0w3jz3Ij0gPcvvnpA1mF7kz7mPsk01R6Iua4c?h=", 
+            "https://nuuuppp.sbs/watch/RENLe7kz7F83jz3qhlfIqvDjiZRGn3jz3tlRzLSHshRyt8FXwqlA?h="
+        ],
+        2: [
+            "https://nuuuppp.sbs/watch/fkZAOO91zm7kz7oK0nJywjAqcDQBAWaT1vGzdyVdTJTFAY?h=", 
+            "https://nuuuppp.sbs/watch/0OQhSBnL7i4FvZQVj8Telsw13jz3YTrG7pdeLRkvJBjN3jz34?h=", 
+            "https://nuuuppp.sbs/watch/FdQkSNNi7kz7MQGbBwY3jz3I7lpQlL5Rbw7kz7FjWZ2K333jz3B2NHI?h=",
+            "https://nuuuppp.sbs/watch/MOlNYGfMlpeUxPu3jz3a4rls4FXDDML64rN2yqNiZoo3jz3aY?h=", 
+            "https://nuuuppp.sbs/watch/ML27kz785hlqrrgSzOVaf2QDVhdayqgVWOErzbNvMY6XvQ?h=", 
+            "https://nuuuppp.sbs/watch/DtEwGhMsQTKcXMiWqojc0hfVCua9oWLp7eacQ7kz7mpzrM?h=",
+            "https://nuuuppp.sbs/watch/zGCgYTsnQHl3Bd3ZI3QodO7XbQzjwyAZpnodoJeJ46U?h=", 
+            "https://nuuuppp.sbs/watch/3jz3yLOeqIimrxdynhQNrrMgpoFh4GxaamDmc6eOa40n88?h=", 
+            "https://nuuuppp.sbs/watch/3jz31wvXfXDE5QwI6pfLIbD0Ss2a1LumLnQnwSt0W6v0iE?h=",
+            "https://nuuuppp.sbs/watch/5IfOxRB2o3jz3gCV9l5O2KH7SA245Xw5LxblWiaGrwDqck?h=", 
+            "https://nuuuppp.sbs/watch/oamTFhOGiCigmUv3jz3iux3jz39mJj7ZyKV7kz7PBLTHa7Hnd4Jo?h=", 
+            "https://nuuuppp.sbs/watch/nuBDoud6Eo13jz3JOcSOX3jz37kz7d2YSd7G5VYR43G22arIAN5s?h=",
+            "https://nuuuppp.sbs/watch/iPuEztxG8NYMfz7kz7dpKrgafpfb7EvaXltOpzJOCmam2M?h=", 
+            "https://nuuuppp.sbs/watch/2OngcXDaKJFwc3jz3Nd8SxxBWr3guwCJKrpbg3jz3IL7kz7RnfLI?h=", 
+            "https://nuuuppp.sbs/watch/wKYZoADDyMrqXln1Ys6ETMyGKrK6y7kz7BDmn0p9W6wOgE?h=",
+            "https://nuuuppp.sbs/watch/XIjGUFqyK83pcYPNIiyATbxQUgqa3dsdO63UTgi3J6o?h=", 
+            "https://nuuuppp.sbs/watch/Qx5r1EXFpE7kz7h2t88VV7kz7RE32yznmKTbDevGeDnC67kz7exE?h=", 
+            "https://nuuuppp.sbs/watch/DPi141gSDcrcdzN0t0kOUeHeDo8ZHAxCwcWZ5iStJVI?h="
+        ],
+        3: [
+            "https://nuuuppp.sbs/watch/nasA2KF3K67vCevs51IoGOi8fsymluk3jz3LdAF43jz3X8io8?h=", 
+            "https://nuuuppp.sbs/watch/80AHAZPTBLDrFG0AKEoEH5OWBhxmc3mRq9SmydKQ3jz35k?h=", 
+            "https://nuuuppp.sbs/watch/aKg3jz37kz7ZyNjIMQy2etDaoy8WNlSO6Y5p2z3v53SSQJFWI?h=",
+            "https://nuuuppp.sbs/watchpremium/8kqucly7kz798JeiRJ3rjr92plyTYOcrb4NUQz6sUGogE0?h=", 
+            "https://nuuuppp.sbs/watchpremium/82HQ7kz7AFnAYt16kpH3GUUn2qyw403jz3LEIkqxGGH0GgKP4?h=", 
+            "https://nuuuppp.sbs/watchpremium/19MkINk8YUGCH0YiAA4A2gHJp1hM3jz3k2AzvD71GIZ28o?h=",
+            "https://nuuuppp.sbs/watch/W3jz3lu6qX4QmBHW3jz3HK8Bg1nOFw3jz3t4BblLcmJ7kz7Z7Rd7BP4?h=", 
+            "https://nuuuppp.sbs/watch/x9rIqgZc5hbcY8QwsXJ4mKfhEB7G0bTtFgycHjAvXeU?h=", 
+            "https://nuuuppp.sbs/watch/p6l1GgKDrDpdHH5M3jz3ZK0aASQ1t53zOLEe3DcgriuGoE?h=",
+            "https://nuuuppp.sbs/watch/H7kz7F7oNc6NlmCn7kz7qqGJB3Yt0IJidOczBlPHIKIqqsZks?h=", 
+            "https://nuuuppp.sbs/watch/fu7kz7BGlq3jz3rbaLTC4oZp3S8SO75zjWvxpfbNeIHLhtHpA?h=", 
+            "https://nuuuppp.sbs/watch/4StkWDRG7kz7I3jz39t0thQKzQC71DqbCxomb43jz3ZNmMMJ2HJw?h=",
+            "https://nuuuppp.sbs/watch/eFXGlfZGtmIJJhGWKUIKA9b4fp8QYSrUgFTXTG1aAr4?h="
+        ]
+    };
+
+    // Convertir a string para evitar problemas de key
+    const enlaces = enlacesPorTemporada[String(temporada.numero)] || [];
+
+    for (let idx = 0; idx < temporada.episodios && idx < enlaces.length; idx++) {
+        const div = document.createElement('div');
+        div.className = 'bloque';
+        div.style.width = '120px';
+        div.style.height = '50px';
+        div.style.background = '#444';
+        div.style.borderRadius = '10px';
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.justifyContent = 'center';
+        div.style.cursor = 'pointer';
+        div.textContent = 'Episodio ' + (idx + 1);
+
+        // Abrir enlace en nueva pestaña
+        div.onclick = () => window.open(enlaces[idx], "_blank");
+
+        submenu.appendChild(div);
+    }
+
+    return;
+}
+// Caso especial: Black Lightning (todas las temporadas con enlaces externos, se abren en pestaña nueva)
+if (serie.nombre === 'Black Lightning') {
+
+    // Aquí defines los enlaces por temporada
+    const enlacesPorTemporada = {
+        1: [
+            "https://nuuuppp.sbs/watchpremium/xLKvUI36E1M2JA5Qe2OIHFszzbXtBAaqDBklnYChsIE?h=", "https://nuuuppp.sbs/watchpremium/RyRyN37kz73jz3tUuYLyQIPHAn1e3XDCG0fVjTAW3jz3q9im10Pg?h=", "https://nuuuppp.sbs/watchpremium/FO1JIk3jz3mq4YTka5HZ4HQZKT7kz7beRk3jz3xFCRpG4gSP2X5Q?h=",
+            "https://nuuuppp.sbs/watchpremium/E2RnsM4jgD4WNBNI9ebuIjUJTiIrKXGf6oLVan0K0?h=", "https://nuuuppp.sbs/watchpremium/zJViN1FQn0KgNDvmYTYxAksfoFAIRrWhJj70M2jOfng?h=", "https://nuuuppp.sbs/watchpremium/llgHzOb6ul4uz0GDhUuPolxR1SXe7kz78j3JU6mK3Qxi5s?h=",
+            "https://nuuuppp.sbs/watchpremium/XAUo7xYBMm3jz3pu8YM6n3jz3ks2KKTqFTGSn7kz74sN1YH7xI7o?h=", "https://nuuuppp.sbs/watchpremium/fTQwnWP0qJkyaKNBulLqAYlspsrNbYUIdJDqTW5kVaU?h=", "https://nuuuppp.sbs/watchpremium/GSrajL77NsKcOrDIGPwTA5xWOykOoIKOPv53jz333RzDSk?h=",
+            "https://nuuuppp.sbs/watchpremium/SUML6OdLAAs7utf04rpjrPlbtKTQk4ttdzzZ0BI2BLo?h=", "https://nuuuppp.sbs/watchpremium/pEISUfxGpCY3jz3qwGpZlP3dLAzGZPPVWlnahEfQb3GoOw?h=", "https://nuuuppp.sbs/watchpremium/26Q33ymhBF3jz3uZUTUjHiL2KkWW7MMkNKfSdeHImrOY7kz7w?h=",
+            "https://nuuuppp.sbs/watchpremium/7kz7d3jz33jz3ytkoRmDzs1N7kz7uN9gVxhYvUW7kz7D8lMimw6lvIpJKg?h="
+        ],
+        2: [
+            "https://nuuuppp.sbs/watchpremium/6B33jz3h7kz7xTKAKlbLgCzfSG7kz70gHuj08EukQWf97kz7Ksz2w9I?h=", "https://nuuuppp.sbs/watchpremium/93jz3cWXMpVv3JyHc7kz7IG3nrEOPA62tJLM3AoglX3jz3Fid4?h=", "https://nuuuppp.sbs/watchpremium/M9Hr9DCGClN88fDmK0F1Ck2vXkR0HR9ldfb1e18YKL0?h=",
+            "https://nuuuppp.sbs/watchpremium/iJCGqdkM2grtVb53WwoOdWwC1B3jz3c3j66MmgVFNZes0E?h=", "https://nuuuppp.sbs/watchpremium/g7jqWeubxrn7YwdNBfQ3MF7YFgn2nczwZ4HI7TEmtCI?h=", "https://nuuuppp.sbs/watchpremium/7kz7gGD7kz7hH76Nijkk5L37l7kz7ut1e47eroNn9TClsc4Wg7kz79o?h=",
+            "https://nuuuppp.sbs/watchpremium/Hp5zVKnGqnN7kz7SJY8osKkIyBLnJr2VqaThpi6svJzGIk?h=", "https://nuuuppp.sbs/watchpremium/rA3jz3XlOCdTqLQ6wNpXnulrrxnMZMcbDOjfaKsw27y7Ls?h=", "https://nuuuppp.sbs/watchpremium/FliHWlLOidC7cC9ly7n3xKXwx176fZZBw7FQJZ2Zpd4?h=",
+            "https://nuuuppp.sbs/watchpremium/EVOpEHiUVF3jz3P7cymxPfub7kz7mpY6Cf7xTv4CRkdDGO7Ik?h=", "https://nuuuppp.sbs/watchpremium/xvWCBLNatwp84Wc7aZfzl6IJHyDLTHUJVoudF2oFhQo?h=", "https://nuuuppp.sbs/watchpremium/XIzW69n7GC6A62NxpTcCW84v5hbIdwEYdKJhwSvwbjk?h=",
+            "https://nuuuppp.sbs/watchpremium/IxXWiL9ERbTfkZ4pzZpfbX1Kqmrhwyy89wvyS4Ms4?h=", "https://nuuuppp.sbs/watchpremium/Eu3tZMQbXEWI8cH1oRqhPlV0dLV51hMwcLgNqYEYI?h=", "https://nuuuppp.sbs/watchpremium/P2O3jz3xEYCcDZHPCNGu5vZS4POY4LbtU1OYPoDMhPYk?h=",
+            "https://nuuuppp.sbs/watchpremium/ia7qPnNPWRF5ZZIFH3xO1Nrr0rjvfOdOTiyrNJ8Wl9Y?h="
+        ],
+        3: [
+            "https://nuuuppp.sbs/watchpremium/PLf072LuzcGvfuJZvFeJXujZ3jz3gWmdp9u9cJNOjAwD9s?h=", "https://nuuuppp.sbs/watchpremium/5nkzyIIwZVvKHnV9BgnpwAfjawSvJk9ssk7ajBpdSrA?h=", "https://nuuuppp.sbs/watchpremium/OBaLo5LndtpwI5nLeGwLjIIIfY0j1DQzGLHXcbe2DpQ?h=",
+            "https://nuuuppp.sbs/watchpremium/tQ5fthJVaY8OQgUEC43MRJfCwyFtjeNq2cLKLsCX4?h=", "https://nuuuppp.sbs/watchpremium/r945wDtR4y2x9zjMJecwq2OL5P0luxCKro0Szb0CvVw?h=", "https://nuuuppp.sbs/watchpremium/LyfMzzyLdOJ9T84We4GaWzGvqQSMwgM8HzeG0aECDW4?h=",
+            "https://nuuuppp.sbs/watchpremium/4ktZE6vgGymOptwk7S5CCi8BYIrLFP7kz7foEgoyaUp9lk?h=", "https://nuuuppp.sbs/watchpremium/4INWAijKuYj3jz3tvcfs0LRHmTAicjQ8oRtDDl8O3jz35Mf5E?h=", "https://nuuuppp.sbs/watchpremium/AQd5EB8yAlYyrBu71l9XJBfjuSuKC5fw2UrtKhqhpjA?h=",
+            "https://nuuuppp.sbs/watchpremium/qMaYTf6JZODTC3jz3qzbrW2FmsCrsfgGcYA8Fx6xsjnTDc?h=", "https://nuuuppp.sbs/watchpremium/bfh7kz7n0rMvp0BAJdfOytS0irJGV2lK3jz3StDE6X7kz7TEIn2M?h=", "https://nuuuppp.sbs/watchpremium/IXZLnVuueXC94grpMyNpX69GZNxVSzj7kz7Ja7pUEliQZE?h=",
+            "https://nuuuppp.sbs/watchpremium/2OJTsjEfe4cIoIn2BmVMkrslVhBOiRwqkQl5Bgg7kz7Pgw?h=", "https://nuuuppp.sbs/watchpremium/U6fPMho9jvFHXTu9O6pCOVvmMwJGr9iSxq2C5I4ccV8?h=", "https://nuuuppp.sbs/watchpremium/PNz6jjzyvfLsIv7kz7Hv7NFGP9IxD7kz7B1XyjmURNwVjHPAU?h=",
+            "https://nuuuppp.sbs/watchpremium/rksJFOwujJARGKUuYZ3jz3nWfUD3jz3OCMw3jz36s5uHVcY17kz7OS8?h="
+        ],
+        4: [
+            "https://nuuuppp.sbs/watchpremium/A3W0kihcKLalTYwzyeFqikxdygswyAFcT3jz37kz73Q7kz7kfGvw?h=", "https://nuuuppp.sbs/watchpremium/jcekCXCa5dEvf20J29x7yMLDA9Bi46QVE4pv4a47kz7fUQ?h=", "https://nuuuppp.sbs/watchpremium/3GBYQAhipEHy7ZL7kz7yv4A6e7kz7BvGdjOZqD8dMruHDn8E8?h=",
+            "https://nuuuppp.sbs/watchpremium/iOTOlTfin9itH3wEarj3OIORH3jz3ZlM4vRNIczqr098lU?h=", "https://nuuuppp.sbs/watchpremium/pMlwR0PJ7eEsD7Iak9cy6NqmWjd52bpawLrws5AWZpw?h=", "https://nuuuppp.sbs/watchpremium/xKSdRWQQm1hOcKAPiAQf7d8KcMohPoYmJ8AlD8W8nhw?h=",
+            "https://nuuuppp.sbs/watchpremium/VDQVjwqBslKhhMCAw9MJGRDSle3jz3IfNYmiQeRMsIUcUI?h=", "https://nuuuppp.sbs/watchpremium/vbQN9iCVyFXM7W87hS2PMo9SY0Uezu4ATGD5odZPmpo?h=", "https://nuuuppp.sbs/watchpremium/ZLBwNY49o47iLRQ3zCeBQSvcLRsYpkFHBy3jz3pirsv2po?h=",
+            "https://nuuuppp.sbs/watchpremium/RJ5E7IHK8r6PwHo3jz33vq3Pi1U0Alkr3jz36VXvEI93HiYe4?h=", "https://nuuuppp.sbs/watchpremium/ETSkhgPqvig8n7kz72x2iD73jz3tfOS28T10o8cxjTMkiEfW8?h=", "https://nuuuppp.sbs/watchpremium/mDo6o4ReuhkANxRC7nQsP3jZrcIm2UV7JT5fxgXFntE?h=",
+            "https://nuuuppp.sbs/watchpremium/Uph3nTsQ5ZNpG9DK17kz7oZQ9svQtnYg87kz76a4VmO8l3jz3fHI?h="
+        ]
+    };
+
+    const enlaces = enlacesPorTemporada[temporada.numero] || [];
+
+    for (let idx = 0; idx < temporada.episodios && idx < enlaces.length; idx++) {
+        const div = document.createElement('div');
+        div.className = 'bloque';
+        div.style.width = '120px';
+        div.style.height = '50px';
+        div.style.background = '#444';
+        div.style.borderRadius = '10px';
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.justifyContent = 'center';
+        div.style.cursor = 'pointer';
+        div.textContent = 'Episodio ' + (idx + 1);
+
+        // Abrir enlace en nueva pestaña
+        div.onclick = () => window.open(enlaces[idx], "_blank");
+
+        submenu.appendChild(div);
+    }
+
+    return;
+}
+
+
+
+
+
+
+        // Caso Vixen (rutas en carpeta)
+        if (serie.nombre === 'Vixen' && serie.carpeta) {
+            const tempNum = String(temporada.numero).padStart(2,'0');
+            for (let ep = 1; ep <= temporada.episodios; ep++) {
+                const div = document.createElement('div');
+                div.className='bloque';
+                div.style.width='120px';
+                div.style.height='50px';
+                div.style.background='#444';
+                div.style.borderRadius='10px';
+                div.style.display='flex';
+                div.style.alignItems='center';
+                div.style.justifyContent='center';
+                div.style.cursor='pointer';
+                div.textContent='Episodio '+ep;
+                const ruta = serie.carpeta + '/S' + tempNum + '/vixen' + temporada.numero + 'x' + ep + '.mp4';
+                div.onclick = () => abrirVideo(ruta);
+                submenu.appendChild(div);
+            }
+            return;
+        }
+
+        // Caso The Ray (temporada 2 tiene un solo video que agrupa)
+        if (serie.nombre === 'List of Freedom Fighters: The Ray' && serie.carpeta) {
+            if (temporada.numero === 2) {
+                const div = document.createElement('div');
+                div.className='bloque';
+                div.style.width='120px';
+                div.style.height='50px';
+                div.style.background='#444';
+                div.style.borderRadius='10px';
+                div.style.display='flex';
+                div.style.alignItems='center';
+                div.style.justifyContent='center';
+                div.style.cursor='pointer';
+                div.textContent='Episodio 1-6';
+                const ruta = serie.carpeta + '/S02/theray2x1-6.mp4';
+                div.onclick = () => abrirVideo(ruta);
+                submenu.appendChild(div);
+                return;
+            } else {
+                const tempNum = String(temporada.numero).padStart(2,'0');
+                for (let ep = 1; ep <= temporada.episodios; ep++) {
+                    const div = document.createElement('div');
+                    div.className='bloque';
+                    div.style.width='120px';
+                    div.style.height='50px';
+                    div.style.background='#444';
+                    div.style.borderRadius='10px';
+                    div.style.display='flex';
+                    div.style.alignItems='center';
+                    div.style.justifyContent='center';
+                    div.style.cursor='pointer';
+                    div.textContent='Episodio '+ep;
+                    const ruta = serie.carpeta + '/S01/theray1x' + ep + '.mp4';
+                    div.onclick = () => abrirVideo(ruta);
+                    submenu.appendChild(div);
+                }
+                return;
+            }
+        }
+
+        // Default: mostrar episodios indicando que no hay vídeo (o que está sin poner)
+        for (let ep = 1; ep <= temporada.episodios; ep++) {
+            const div = document.createElement('div');
+            div.className='bloque';
+            div.style.width='120px';
+            div.style.height='50px';
+            div.style.background='#444';
+            div.style.borderRadius='10px';
+            div.style.display='flex';
+            div.style.alignItems='center';
+            div.style.justifyContent='center';
+            div.style.cursor='pointer';
+            div.textContent='Episodio '+ep;
+            div.onclick = ()=> alert('Episodio '+ep+' no disponible aún');
+            submenu.appendChild(div);
+        }
+    }
+
+    // --- LISTA COMPLETA DE SERIES ARROWVERSO ---
+    submenu.innerHTML='';
+    btnVolver.style.display='inline-block';
+    btnVolver._volverFunc = volverFunc;
+
+    const series = [
+        {
+            nombre: 'Arrow',
+            temporadas: [
+                { numero: 1, episodios: 23 },
+                { numero: 2, episodios: 23 },
+                { numero: 3, episodios: 23 },
+                { numero: 4, episodios: 23 },
+                { numero: 5, episodios: 23 },
+                { numero: 6, episodios: 23 },
+                { numero: 7, episodios: 22 },
+                { numero: 8, episodios: 10 }
+            ],
+            imagen: 'imagenes/dc/arrow.jpg'
+        },
+        {
+            nombre: 'The Flash',
+            temporadas: [
+                { numero: 1, episodios: 23 },
+                { numero: 2, episodios: 23 },
+                { numero: 3, episodios: 23 },
+                { numero: 4, episodios: 23 },
+                { numero: 5, episodios: 22 },
+                { numero: 6, episodios: 19 },
+                { numero: 7, episodios: 18 },
+                { numero: 8, episodios: 20 },
+                { numero: 9, episodios: 13 }
+            ],
+            imagen: 'imagenes/dc/theflash.jpg'
+        },
+        {
+            nombre: 'Supergirl',
+            temporadas: [
+                { numero: 1, episodios: 20 },
+                { numero: 2, episodios: 22 },
+                { numero: 3, episodios: 23 },
+                { numero: 4, episodios: 22 },
+                { numero: 5, episodios: 20 },
+                { numero: 6, episodios: 20 }
+            ],
+            imagen:'imagenes/dc/supergirl.jpg'
+        },
+        {
+            nombre: "DC's Legends of Tomorrow",
+            temporadas: [
+                { numero: 1, episodios: 16 },
+                { numero: 2, episodios: 18 },
+                { numero: 3, episodios: 18 },
+                { numero: 4, episodios: 16 },
+                { numero: 5, episodios: 15 },
+                { numero: 6, episodios: 15 },
+                { numero: 7, episodios: 13 }
+            ],
+            imagen:'imagenes/dc/legendsoftomorrow.jpg'
+        },
+        {
+            nombre: 'Black Lightning',
+            temporadas: [
+                { numero: 1, episodios: 13 },
+                { numero: 2, episodios: 16 },
+                { numero: 3, episodios: 16 },
+                { numero: 4, episodios: 13 }
+            ],
+            imagen:'imagenes/dc/blacklightning.jpg'
+        },
+        {
+            nombre: 'Batwoman',
+            temporadas: [
+                { numero: 1, episodios: 20 },
+                { numero: 2, episodios: 18 },
+                { numero: 3, episodios: 13 }
+            ],
+            imagen:'imagenes/dc/batwoman.jpg'
+        },
+        {
+            nombre: 'Superman & Lois',
+            temporadas: [
+                { numero: 1, episodios: 15 },
+                { numero: 2, episodios: 15 },
+                { numero: 3, episodios: 13 },
+                { numero: 4, episodios: 10 }
+            ],
+            imagen:'imagenes/dc/supermanlois.jpg'
+        },
+        {
+            nombre: 'Constantine',
+            temporadas: [
+                { numero: 1, episodios: 13 }
+            ],
+            imagen:'imagenes/dc/constantine.jpg'
+        },
+
+        // --- NUEVAS CON RUTAS ---
+        {
+            nombre: 'Vixen',
+            temporadas: [
+                { numero: 1, episodios: 6 },
+                { numero: 2, episodios: 6 }
+            ],
+            imagen:'imagenes/dc/vixen.jpg',
+            carpeta: 'videos/dc/arrowverso/vixen'
+        },
+        {
+            nombre: 'List of Freedom Fighters: The Ray',
+            temporadas: [
+                { numero: 1, episodios: 6 },
+                { numero: 2, episodios: 6 }
+            ],
+            imagen:'imagenes/dc/theray.jpg',
+            carpeta: 'videos/dc/arrowverso/theray'
+        }
+    ];
+
+    // --- FILA SUPERIOR 8 SERIES ---
+    const fila1 = document.createElement('div');
+    fila1.style.display='grid';
+    fila1.style.gridTemplateColumns='repeat(8, 180px)';
+    fila1.style.gap='15px';
+    fila1.style.justifyContent='center';
+    fila1.style.marginBottom='20px';
+
+    series.slice(0,8).forEach(serie=>{
+        const div = crearBloqueImagen('180px','260px', serie.imagen, '');
+        div.onclick = () => mostrarTemporadasArrow(serie, ()=> mostrarArrowverso(volverFunc));
+        fila1.appendChild(div);
+    });
+
+    submenu.appendChild(fila1);
+
+    // --- FILA INFERIOR (CENTRADAS) ---
+    if(series.length>8){
+        const fila2 = document.createElement('div');
+        fila2.style.display='flex';
+        fila2.style.justifyContent='center';
+        fila2.style.gap='15px';
+
+        series.slice(8).forEach(serie=>{
+            const div = crearBloqueImagen('180px','260px', serie.imagen, '');
+            div.onclick = () => mostrarTemporadasArrow(serie, ()=> mostrarArrowverso(volverFunc));
+            fila2.appendChild(div);
+        });
+
+        submenu.appendChild(fila2);
+    }
+}
+
+// ------------------ VIDEO OVERLAY ------------------
+const overlay = document.getElementById('overlay');
+const videoOverlay = document.getElementById('videoOverlay');
+const cerrarOverlay = document.getElementById('cerrarOverlay');
+const iframe = document.getElementById('videoIframe');
+
+function abrirVideo(url){
+    // si url es nulo o vacío, no hacer nada
+    if (!url) return;
+
+    // mp4 -> usar <video>, de lo contrario abrir en iframe
+    if (typeof url === 'string' && url.trim().toLowerCase().endsWith('.mp4')) {
+        iframe.style.display = 'none';
+        iframe.src = '';
+        videoOverlay.src = url;
+        videoOverlay.style.display = 'block';
+        // play() puede devolver promesa, ignoramos errores para evitar excepción en navegadores
+        try { videoOverlay.play().catch(()=>{}); } catch(e){/* ignorar */ }
+    } else {
+        // abrir URL externa en iframe (asegúrate de que el origen permita embed)
+        iframe.src = url;
+        iframe.style.display = 'block';
+        videoOverlay.pause();
+        videoOverlay.style.display = 'none';
+        videoOverlay.src = '';
+    }
+
+    overlay.style.display = 'flex';
+}
+
+cerrarOverlay.onclick = () => {
+    try { videoOverlay.pause(); } catch(e){}
+    try { videoOverlay.currentTime = 0; } catch(e){}
+    overlay.style.display = 'none';
+    iframe.src = '';
+}
+
+// cerrar overlay si se hace click fuera del reproductor
+overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+        cerrarOverlay.onclick();
+    }
+});
+
+// ------------------ INICIAL ------------------
+mostrarMenuPrincipal();
+</script>
+
+</body>
+</html>
